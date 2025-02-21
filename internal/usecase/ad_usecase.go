@@ -62,8 +62,8 @@ func (uc *AdUseCase) buildCacheKey(filter domain.FilterRequest) string {
 		filter.PageSize,
 	)
 
-	for prop, values := range filter.Properties {
-		key += fmt.Sprintf(":%v=%v", prop, values)
+	for _, prop := range filter.PropertyFilters {
+		key += fmt.Sprintf(":%v=%v", prop.PropertyID, prop.Values)
 	}
 
 	return key

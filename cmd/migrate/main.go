@@ -71,5 +71,52 @@ func runMigrations(db *sql.DB) error {
 		return fmt.Errorf("failed to create status index: %v", err)
 	}
 
+	// Create properties table
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS properties (
+			id SERIAL PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			type VARCHAR(50) NOT NULL,
+			value_type VARCHAR(50) NOT NULL,
+			is_searchable BOOLEAN NOT NULL DEFAULT false,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+		)
+	`); err != nil {
+		return fmt.Errorf("failed to create properties table: %v", err)
+	}
+
+	// Create property_values table
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS property_values (
+			id SERIAL PRIMARY KEY,
+			property_id INTEGER NOT NULL REFERENCES properties(id),
+			value TEXT NOT NULL,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+		)
+	`); err != nil {
+		return fmt.Errorf("failed to create property_values table: %v", err)
+	}
+
+	// Create indexes
+	if _, err := db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_property_values_property_id ON property_values(property_id);
+		CREATE INDEX IF NOT EXISTS idx_properties_type ON properties(type);
+		CREATE INDEX IF NOT EXISTS idx_properties_searchable ON properties(is_searchable) WHERE is_searchable = true;
+	`); err != nil {
+		return fmt.Errorf("failed to create indexes: %v", err)
+	}
+
+	// Update ads table to use jsonb for properties
+	if _, err := db.Exec(`
+		ALTER TABLE ads 
+		DROP COLUMN IF EXISTS properties,
+		ADD COLUMN IF NOT EXISTS properties JSONB;
+		CREATE INDEX IF NOT EXISTS idx_ads_properties ON ads USING gin(properties);
+	`); err != nil {
+		return fmt.Errorf("failed to update ads table: %v", err)
+	}
+
 	return nil
 }

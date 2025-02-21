@@ -29,7 +29,7 @@ func ValidateSchema(db *sql.DB) error {
 				{"id", "integer", "NO", nil, true}, // Serial/auto-increment column
 				{"title", "jsonb", "NO", nil, false},
 				{"description", "jsonb", "YES", nil, false},
-				{"attributes", "jsonb", "YES", nil, false},
+				{"properties", "jsonb", "YES", nil, false},
 				{"category_ids", "ARRAY", "YES", nil, false}, // Changed to match PostgreSQL's type
 				{"status", "integer", "NO", strPtr("0"), false},
 				{"price", "jsonb", "YES", nil, false},
@@ -43,7 +43,7 @@ func ValidateSchema(db *sql.DB) error {
 				"idx_ads_category_ids",
 				"idx_ads_search_vector",
 				"idx_ads_title",
-				"idx_ads_attributes",
+				"idx_ads_properties",
 				"idx_ads_price",
 				"idx_ads_created_at",
 			},

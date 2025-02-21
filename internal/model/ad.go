@@ -7,7 +7,7 @@ type Ad struct {
 	ID           int64           `json:"id"`
 	Title        []MultiLangText `json:"title_multi"`
 	Description  []MultiLangText `json:"body_multi,omitempty"`
-	Attributes   []MultiLangText `json:"attributes,omitempty"`
+	Properties   []MultiLangText `json:"properties,omitempty"`
 	CategoryIDs  []int64         `json:"category_ids,omitempty"`
 	Status       string          `json:"status"`
 	Price        *float64        `json:"price,omitempty"`

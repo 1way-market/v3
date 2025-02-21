@@ -7,7 +7,7 @@ CREATE TABLE ads (
     id SERIAL PRIMARY KEY,
     title JSONB NOT NULL,
     description JSONB,
-    attributes JSONB,
+    properties JSONB,
     category_ids INTEGER[],
     status VARCHAR(50) NOT NULL DEFAULT 'active',
     price DECIMAL(15,2),
@@ -21,7 +21,7 @@ CREATE INDEX idx_ads_status ON ads(status);
 CREATE INDEX idx_ads_category_ids ON ads USING GIN(category_ids);
 CREATE INDEX idx_ads_search_vector ON ads USING GIN(search_vector);
 CREATE INDEX idx_ads_title ON ads USING GIN(title jsonb_path_ops);
-CREATE INDEX idx_ads_attributes ON ads USING GIN(attributes);
+CREATE INDEX idx_ads_properties ON ads USING GIN(properties);
 CREATE INDEX idx_ads_price ON ads(price);
 CREATE INDEX idx_ads_created_at ON ads(created_at);
 

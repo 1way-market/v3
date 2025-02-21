@@ -37,10 +37,17 @@ func (r *AdRepository) FindWithFilter(ctx context.Context, filter domain.FilterR
 		query = query.Where("status = ?", *filter.Status)
 	}
 
-	// Apply dynamic property filters
-	for prop, values := range filter.Properties {
-		if len(values) > 0 {
-			query = query.Where(fmt.Sprintf("attributes->>'%s' IN (?)", prop), values)
+	// Apply property filters
+	for _, prop := range filter.PropertyFilters {
+		// Filter by primitive values
+		if len(prop.Values) > 0 {
+			query = query.Where("EXISTS (SELECT 1 FROM jsonb_array_elements(properties) props WHERE props->>'ID' = ? AND props->>'value' = ANY(?))",
+				prop.PropertyID, prop.Values)
+		}
+		// Filter by reference values
+		if len(prop.ValueIDs) > 0 {
+			query = query.Where("EXISTS (SELECT 1 FROM jsonb_array_elements(properties) props WHERE props->>'ID' = ? AND (props->>'value_id')::int = ANY(?))",
+				prop.PropertyID, prop.ValueIDs)
 		}
 	}
 
@@ -132,14 +139,14 @@ func (r *AdRepository) Create(ctx context.Context, ad *domain.Ad) error {
 	searchVector := r.buildSearchVector(ad)
 
 	// Create ad with all fields
-	result := r.db.WithContext(ctx).Omit("created_at", "updated_at").Create(map[string]interface{}{
-		"title":         ad.Title,
-		"description":   ad.Description,
-		"attributes":    ad.Attributes,
-		"category_ids":  ad.CategoryIDs,
-		"status":        ad.Status,
-		"price":         ad.Price,
-		"search_vector": searchVector,
+	result := r.db.WithContext(ctx).Model(&domain.Ad{}).Create(&domain.Ad{
+		Title:        ad.Title,
+		Description:  ad.Description,
+		Properties:   ad.Properties,
+		CategoryIDs:  ad.CategoryIDs,
+		Status:       ad.Status,
+		Price:        ad.Price,
+		SearchVector: searchVector,
 	})
 
 	if result.Error != nil {
@@ -159,7 +166,7 @@ func (r *AdRepository) Update(ctx context.Context, ad *domain.Ad) error {
 		Updates(map[string]interface{}{
 			"title":         ad.Title,
 			"description":   ad.Description,
-			"attributes":    ad.Attributes,
+			"properties":    ad.Properties,
 			"category_ids":  ad.CategoryIDs,
 			"status":        ad.Status,
 			"price":         ad.Price,
@@ -202,6 +209,20 @@ func (r *AdRepository) List(ctx context.Context, filter *domain.FilterRequest) (
 
 	if filter.Status != nil {
 		query = query.Where("status = ?", *filter.Status)
+	}
+
+	// Apply property filters
+	for _, prop := range filter.PropertyFilters {
+		// Filter by primitive values
+		if len(prop.Values) > 0 {
+			query = query.Where("EXISTS (SELECT 1 FROM jsonb_array_elements(properties) props WHERE props->>'ID' = ? AND props->>'value' = ANY(?))",
+				prop.PropertyID, prop.Values)
+		}
+		// Filter by reference values
+		if len(prop.ValueIDs) > 0 {
+			query = query.Where("EXISTS (SELECT 1 FROM jsonb_array_elements(properties) props WHERE props->>'ID' = ? AND (props->>'value_id')::int = ANY(?))",
+				prop.PropertyID, prop.ValueIDs)
+		}
 	}
 
 	// Apply price filters
